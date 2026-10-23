@@ -2,7 +2,7 @@
 
 ![Static Badge](https://img.shields.io/badge/CLAUDE-VIBECODED?style=for-the-badge&logo=claude&label=VIBECODED&labelColor=%23333333&color=%23de7356)
 
-![Icon](https://raw.githubusercontent.com/TheElevatedOne/WhereToDie/refs/heads/main/icon.png)
+![Icon](icon.png)
 
 Risk of Rain 2 BepInEx plugin: quality of life for the Page of Reincarnation (Hallowed Concepts).
 The user-facing description (also the Thunderstore README) is in [README_MOD.md](README_MOD.md).
@@ -18,7 +18,7 @@ The user-facing description (also the Thunderstore README) is in [README_MOD.md]
 - Risk of Rain 2 with Hallowed Concepts, installed through Steam
 - An r2modman profile with BepInExPack, HookGenPatcher and Risk Of Options whose `MMHOOK_RoR2.dll` was regenerated
   for the current game version (launch the game once with that profile after an update). The default is `Hallowed Ready`.
-- Python 3 with Pillow, only to regenerate the icon (`make icons`)
+- Python 3 with Pillow, only to regenerate the README previews (`make previews`)
 
 ## Building
 
@@ -56,7 +56,6 @@ and `<Version>` in `WhereToDie.csproj`, add a `CHANGELOG.md` entry, then `make p
 | `src/ExtraZones.cs` | Host: the rocketship roof and Planetarium zones |
 | `src/FinalePath.cs` | Host: after those zones, Obliteration portals instead of the ways back, and no way out of Obliteration |
 | `src/AssemblyInfo.cs` | `SearchableAttribute.OptIn` so the game finds the console commands and message handler |
-| `tools/make_icon.py` | Generates `icon.png` |
 | `tools/make_previews.py` | Turns showcase screenshots into `docs/screenshots/` |
 | `tests/TestDriver/` | Test-only plugin: the scripted test and the showcase run (never packaged) |
 

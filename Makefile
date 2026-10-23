@@ -4,7 +4,6 @@
 #   make install     Build and copy into an r2modman profile
 #   make uninstall   Remove from that profile
 #   make package     Build the Thunderstore zip into dist/ (see package.sh)
-#   make icons       Regenerate icon.png (needs Pillow)
 #   make test        Scripted in-game test: launches the game with a throwaway profile (see tests/run_ingame_test.sh)
 #   make screenshots Same, but takes the README screenshots (tests/.profile/BepInEx/wdtest/), then: make previews
 #   make previews    Turn those screenshots into docs/screenshots/*.jpg (needs Pillow)
@@ -23,7 +22,7 @@ VERSION   := $(shell bash -c 'source ./thunderstore.conf && echo $$VERSION')
 DLL         := bin/$(CONFIG)/$(NAME).dll
 INSTALL_DIR := $(PROFILE_DIR)/BepInEx/plugins/$(NAMESPACE)-$(NAME)
 
-.PHONY: all build install uninstall package icons test screenshots previews clean
+.PHONY: all build install uninstall package test screenshots previews clean
 
 all: build
 
@@ -40,9 +39,6 @@ uninstall:
 
 package: build
 	./package.sh "$(DLL)"
-
-icons:
-	python3 tools/make_icon.py
 
 test:
 	tests/run_ingame_test.sh "$(PROFILE_DIR)"

@@ -2,7 +2,7 @@
 
 ![Static Badge](https://img.shields.io/badge/CLAUDE-VIBECODED?style=for-the-badge&logo=claude&label=VIBECODED&labelColor=%23333333&color=%23de7356)
 
-![Icon](https://raw.githubusercontent.com/TheElevatedOne/WhereToDie/refs/heads/main/icon.png)
+![Icon](https://raw.githubusercontent.com/TheElevatedOne/WhereToDie/refs/heads/main/icon.png?v=2)
 
 Quality of life for the **Page of Reincarnation** (the N'tormat page from Hallowed Concepts that sacrifices you
 to take you somewhere else). It shows where the page works and whether it will kill you, fixes two annoyances
