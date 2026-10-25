@@ -442,6 +442,7 @@ namespace WhereToDie.TestDriver
             yield return new WaitForSecondsRealtime(1f);
             Check("player 2: N'tormat gives the page too", SecondBody.inventory.GetItemCountEffective(DLC4Content.Items.PageDie) == 1);
             yield return TestMarkerRoundTrip();
+            TestPageDrops();
 
             yield return WaitFor(() => AnyMarker(m => MarkerFlag(m, "StageWide")), 10, "stage-wide marker", false);
             Note("markers: " + DescribeMarkers());
@@ -463,6 +464,35 @@ namespace WhereToDie.TestDriver
             Check("aurora gone after 30 s", AuroraCount() == 0, $"auroras={AuroraCount()}");
             Check("icon tint gone after 30 s", IconTint() == null, $"tint={Tint} buff={ReadyBuff}");
             yield return Shot("02_after_window");
+        }
+
+        // Reincarnation comes with the N'tormat, so it is out of the page drops; the other pages still drop.
+        private void TestPageDrops()
+        {
+            var page = PickupCatalog.FindPickupIndex(DLC4Content.Items.PageDie.itemIndex);
+            var pool = Run.instance.availablePageTierDropList;
+            Note($"page pool: {string.Join(", ", pool.Select(p => PickupCatalog.GetPickupDef(p)?.internalName))}");
+            Check("Reincarnation not in the page drops", !pool.Contains(page));
+            Check("other pages still in the page drops", pool.Count > 0, $"pages={pool.Count}");
+            var rng = new Xoroshiro128Plus(12345UL);
+            var tables = new (string name, PickupDropTable table)[]
+            {
+                ("N'tormat page choice / Ancient Sepulcher", DLC4ProgressionController.pageDropTable),
+                ("Shrine of Compulsion page reward", DLC4ProgressionController.instance ? DLC4ProgressionController.instance.pagePickupDropTable : null),
+            };
+            foreach (var (name, table) in tables)
+            {
+                if (!table)
+                {
+                    Check($"{name}: drop table found", false);
+                    continue;
+                }
+                var rolled = new HashSet<PickupIndex>();
+                for (int i = 0; i < 300; i++) rolled.Add(table.GeneratePickup(rng).pickupIndex);
+                Check($"{name}: never Reincarnation in 300 rolls", !rolled.Contains(page),
+                    string.Join(", ", rolled.Select(p => PickupCatalog.GetPickupDef(p)?.internalName)));
+                Check($"{name}: rolls the other pages", rolled.Count == pool.Count, $"distinct={rolled.Count} pool={pool.Count}");
+            }
         }
 
         // A page spent on a stage transition (consumed + cooldown) is usable on arrival in the Soulbound Threshold.

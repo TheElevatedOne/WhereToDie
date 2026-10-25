@@ -19,6 +19,7 @@ namespace WhereToDie
         internal static void Init()
         {
             On.RoR2.KeyItemDef.AttemptGrant += KeyItemDef_AttemptGrant;
+            On.RoR2.Run.BuildDropTable += Run_BuildDropTable;
             Stage.onServerStageBegin += OnServerStageBegin;
         }
 
@@ -61,6 +62,32 @@ namespace WhereToDie
             }
             inventory.GiveItemPermanent(DLC4Content.Items.PageDie);
             WhereToDiePlugin.Log.LogInfo($"Gave the Page of Reincarnation to {master.playerCharacterMasterController.GetDisplayName()} with the N'tormat.");
+        }
+
+        // Since everyone gets Reincarnation with the N'tormat, it shouldn't also turn up as a page drop: not as the random
+        // page that comes with the N'tormat, not in its "choose a page" picker, and not from the Ancient Sepulcher or the
+        // Shrine of Compulsion. Those all roll from the run's page drop list, so it's taken out of that list. The other
+        // pages keep their relative weights. The list is built once at run start, right before every drop table
+        // regenerates from it (PickupDropTable listens to Run.onRunStartGlobal), so changing the option affects the next run.
+        private static void Run_BuildDropTable(On.RoR2.Run.orig_BuildDropTable orig, Run self)
+        {
+            orig(self);
+            if (!WhereToDiePlugin.GivePageWithBook.Value || !DLC4Content.Items.PageDie)
+            {
+                return;
+            }
+            var page = PickupCatalog.FindPickupIndex(DLC4Content.Items.PageDie.itemIndex);
+            // Keep it if it's the only page this profile has unlocked, so page drops still have something to give.
+            if (!self.availablePageTierDropList.Contains(page) || self.availablePageTierDropList.Count <= 1)
+            {
+                return;
+            }
+            self.availablePageTierDropList.Remove(page);
+            if (self.allAvailableTierDroplists.TryGetValue(ItemTier.Page, out var allPages))
+            {
+                allPages.Remove(page);
+            }
+            WhereToDiePlugin.Log.LogInfo("The Page of Reincarnation comes with the N'tormat; removed it from the page drops.");
         }
 
         #endregion

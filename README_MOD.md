@@ -8,7 +8,7 @@ Quality of life for the **Page of Reincarnation** (the N'tormat page from Hallow
 to take you somewhere else). It shows where the page works and whether it will kill you, fixes two annoyances
 with getting and keeping the page, and adds two new places to use it.
 
-## Die or Not
+## Indicators
 
 - **Page icon highlight.** While you stand where Reincarnation works, its icon above the N'tormat changes colour, fading from green at the bottom to:
     - **yellow** at the top: the ritual works and nobody has to die (the Veil of Memory in the Soulbound Threshold)
@@ -24,15 +24,16 @@ with getting and keeping the page, and adds two new places to use it.
 | ![Red aurora over a stage in its first 30 seconds](https://raw.githubusercontent.com/TheElevatedOne/WhereToDie/refs/heads/main/docs/screenshots/01_stage_aurora.jpg) | ![Yellow aurora at the Veil of Memory](https://raw.githubusercontent.com/TheElevatedOne/WhereToDie/refs/heads/main/docs/screenshots/05_threshold_veil_aurora.jpg) |
 | First 30 seconds of a stage | The Veil of Memory |
 
-## Quality
+## Page fixes
 
 - **Reincarnation with the N'tormat.** Picking up the N'tormat also gives you the Page of Reincarnation, if you
-  don't have it yet.
+  don't have it yet. Because of that, Reincarnation no longer drops as a page: the N'tormat still comes with a random
+  page, and the Ancient Sepulcher, the Shrine of Compulsion and other page drops still give the other pages as before.
 - **Recharged in the Soulbound Threshold.** A page that changes the stage stays spent for the next stage too, so the page
   you used to reach the Soulbound Threshold couldn't open the way to Terminal Lucidity, and you needed two.
   Now it recharges when you arrive, and one page is enough.
 
-## Space and Time
+## New zones
 
 Two new places where dying by Reincarnation takes you to the **Soulbound Threshold**:
 
@@ -82,14 +83,14 @@ It adds no items, rules or networked objects, so vanilla players can join a modd
 
 | Section | Setting | Default | Description |
 | --- | --- | --- | --- |
-| Die or Not | `Page icon highlight` | `true` | Colour the Reincarnation icon while you stand where it works. |
-| Die or Not | `Hallowed aurora` | `true` | Aurora above places where Reincarnation works. Needs the host to have the mod. |
-| Quality | `Give Reincarnation with the N’tormat` | `true` | Host only. |
-| Quality | `Refresh Reincarnation in the Soulbound Threshold` | `true` | Host only. |
-| Space and Time | `Rocketship roof` | `true` | Host only. |
-| Space and Time | `Planetarium final arena` | `true` | Host only. |
-| Space and Time | `Re-enter the Soulbound Threshold` | `true` | Host only. |
-| Space and Time | `No way back after the finale` | `true` | Host only. After the rocketship roof or the Planetarium, the run ends in Obliteration. |
+| Indicators | `Page icon highlight` | `true` | Colour the Reincarnation icon while you stand where it works. |
+| Indicators | `Hallowed aurora` | `true` | Aurora above places where Reincarnation works. Needs the host to have the mod. |
+| Page fixes | `Give Reincarnation with the N’tormat` | `true` | Host only. Also stops Reincarnation dropping as a page (from the next run). |
+| Page fixes | `Refresh Reincarnation in the Soulbound Threshold` | `true` | Host only. |
+| New zones | `Rocketship roof` | `true` | Host only. |
+| New zones | `Planetarium final arena` | `true` | Host only. |
+| New zones | `Re-enter the Soulbound Threshold` | `true` | Host only. |
+| New zones | `No way back after the finale` | `true` | Host only. After the rocketship roof or the Planetarium, the run ends in Obliteration. |
 
 Console command (open the console with `Ctrl + Alt + ~`):
 

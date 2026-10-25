@@ -7,6 +7,9 @@ A real remote client (modded or vanilla) needs a second machine and is still unt
 ## Singleplayer (host)
 
 - [ ] Pick up the N'tormat without the Page of Reincarnation: the page is added (log: "Gave the Page of Reincarnation").
+- [ ] Reincarnation never drops as a page (log at run start: "removed it from the page drops"): not as the random page
+      with the first N'tormat, not in the N'tormat's page choice, not from the Ancient Sepulcher or the Shrine of Compulsion.
+      Other pages still drop.
 - [ ] Normal stage, first 30 s, holding an unused page: red, sparse aurora across the map; gone after 30 s.
       The Reincarnation icon is coloured green-red while it lasts.
 - [ ] Shrine of Descent → soul-binding trial → die at the Teleporter → Soulbound Threshold: the page is usable on arrival
