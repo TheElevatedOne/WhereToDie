@@ -420,27 +420,7 @@ namespace WhereToDie.TestDriver
         private IEnumerator TestBookAndStageWindow()
         {
             Note($"stage 1 = {Scene}, {Stage.instance.entryTime.timeSince:0.0}s since entry");
-            var book = DLC4Content.KeyItems.CursedBook;
-            var pickupIndex = PickupCatalog.FindPickupIndex(book.keyItemIndex);
-            var pickupDef = PickupCatalog.GetPickupDef(pickupIndex);
-            var context = new PickupDef.GrantContext
-            {
-                body = Body,
-                pickup = new UniquePickup(pickupIndex),
-                position = Body.corePosition,
-                rotation = Quaternion.identity,
-                shouldNotify = true,
-            };
-            pickupDef.attemptGrant(ref context);
-            yield return new WaitForSecondsRealtime(1f);
-            Check("N'tormat picked up", Inv.keyItem == book);
-            Check("N'tormat gives the Page of Reincarnation", Count(DLC4Content.Items.PageDie) == 1, $"PageDie={Count(DLC4Content.Items.PageDie)}");
-
-            // Player 2 picks up their own N'tormat.
-            var context2 = new PickupDef.GrantContext { body = SecondBody, pickup = new UniquePickup(pickupIndex), position = SecondBody.corePosition, rotation = Quaternion.identity, shouldNotify = true };
-            pickupDef.attemptGrant(ref context2);
-            yield return new WaitForSecondsRealtime(1f);
-            Check("player 2: N'tormat gives the page too", SecondBody.inventory.GetItemCountEffective(DLC4Content.Items.PageDie) == 1);
+            yield return TestSepulcherBook();
             yield return TestMarkerRoundTrip();
             TestPageDrops();
 
@@ -464,6 +444,124 @@ namespace WhereToDie.TestDriver
             Check("aurora gone after 30 s", AuroraCount() == 0, $"auroras={AuroraCount()}");
             Check("icon tint gone after 30 s", IconTint() == null, $"tint={Tint} buff={ReadyBuff}");
             yield return Shot("02_after_window");
+            yield return TestSepulcherFinish();
+        }
+
+        private WakeController wake;
+        private HashSet<GenericPickupController> pickupsBeforeWake;
+
+        private static bool IsPage(PickupIndex index) => index.isItem && ItemCatalog.GetItemDef(index.itemIndex)?.tier == ItemTier.Page;
+        private static string PickupName(PickupIndex index) => PickupCatalog.GetPickupDef(index)?.internalName ?? "?";
+        // Pages other than Reincarnation in the inventory.
+        private static int OtherPages(Inventory inventory) =>
+            inventory.itemAcquisitionOrder.Where(i => i != DLC4Content.Items.PageDie.itemIndex && ItemCatalog.GetItemDef(i)?.tier == ItemTier.Page)
+                .Sum(i => inventory.GetItemCountEffective(i));
+
+        private List<GenericPickupController> NewPickups() =>
+            InstanceTracker.GetInstancesList<GenericPickupController>().Where(p => p && !pickupsBeforeWake.Contains(p)).ToList();
+
+        private static Vector3 Ground(Vector3 near)
+        {
+            return Physics.Raycast(near + Vector3.up * 10f, Vector3.down, out var hit, 60f, LayerIndex.world.mask) ? hit.point : near;
+        }
+
+        // A player walks onto a dropped pickup; pages need an interaction the first time, like pressing E.
+        private IEnumerator PickUp(CharacterBody body, GenericPickupController pickup)
+        {
+            if (!body || !pickup) yield break;
+            TeleportHelper.TeleportBody(body, pickup.transform.position + Vector3.up * 0.5f, false);
+            yield return new WaitForSecondsRealtime(1.5f);
+            if (pickup && !GetField<bool>(pickup, "consumed"))
+            {
+                body.GetComponent<Interactor>().AttemptInteraction(pickup.gameObject);
+                yield return new WaitForSecondsRealtime(1f);
+            }
+        }
+
+        // The real Ancient Sepulcher (Wake) event: activating it drops the N'tormat and a random page for every player
+        // without the N'tormat; picking up the N'tormat also gives Reincarnation.
+        private IEnumerator TestSepulcherBook()
+        {
+            pickupsBeforeWake = new HashSet<GenericPickupController>(InstanceTracker.GetInstancesList<GenericPickupController>());
+            wake = WakeController.instance;
+            if (!wake)
+            {
+                Note($"no Ancient Sepulcher on this stage; spawning one ({WakeSpawnPoint.readOnlyInstancesList.Count} spawn points)");
+                DirectorCore.instance.TrySpawnObject(new DirectorSpawnRequest(DLC4ProgressionController.instance.wakeSpawnCard,
+                    new DirectorPlacementRule { placementMode = DirectorPlacementRule.PlacementMode.Random }, new Xoroshiro128Plus(7UL)));
+                yield return WaitFor(() => WakeController.instance, 10, "Ancient Sepulcher");
+                wake = WakeController.instance;
+            }
+            Check("Ancient Sepulcher on the stage", wake);
+            if (!wake) yield break;
+            yield return new WaitForSecondsRealtime(1f);
+            var stand = Ground(wake.transform.position + wake.transform.forward * 6f) + Vector3.up;
+            yield return TeleportTo(stand, 1.5f);
+            TeleportHelper.TeleportBody(SecondBody, stand + wake.transform.right * 3f, false);
+            yield return new WaitForSecondsRealtime(1f);
+            Check("Ancient Sepulcher can be activated", wake.GetInteractability(Body.GetComponent<Interactor>()) == Interactability.Available,
+                $"status={wake.missionStatus}");
+            Body.GetComponent<Interactor>().AttemptInteraction(wake.gameObject);
+            var bookIndex = PickupCatalog.FindPickupIndex(DLC4Content.KeyItems.CursedBook.keyItemIndex);
+            yield return WaitFor(() => NewPickups().Count(p => p.pickup.pickupIndex == bookIndex) >= 2 && NewPickups().Count(p => IsPage(p.pickup.pickupIndex)) >= 2,
+                20, "N'tormats and pages on the ground", false);
+            var dropped = NewPickups();
+            Note("dropped: " + string.Join(", ", dropped.Select(p => PickupName(p.pickup.pickupIndex))));
+            var books = dropped.Where(p => p.pickup.pickupIndex == bookIndex).ToList();
+            var pages = dropped.Where(p => IsPage(p.pickup.pickupIndex)).ToList();
+            Check("activation drops a N'tormat per player", books.Count == 2, $"books={books.Count}");
+            Check("activation drops a page per player", pages.Count == 2, $"pages={pages.Count}");
+            Check("the dropped pages are not Reincarnation", pages.All(p => p.pickup.pickupIndex.itemIndex != DLC4Content.Items.PageDie.itemIndex),
+                string.Join(", ", pages.Select(p => PickupName(p.pickup.pickupIndex))));
+
+            foreach (var (body, label) in new[] { (Body, "player 1"), (SecondBody, "player 2") })
+            {
+                var book = books.Where(b => b).OrderBy(b => Vector3.Distance(b.transform.position, body.corePosition)).FirstOrDefault();
+                books.Remove(book);
+                var page = pages.Where(b => b).OrderBy(b => Vector3.Distance(b.transform.position, body.corePosition)).FirstOrDefault();
+                pages.Remove(page);
+                yield return PickUp(body, book);
+                yield return PickUp(body, page);
+                var inventory = body.inventory;
+                Check($"{label}: picked up the N'tormat", inventory.keyItem == DLC4Content.KeyItems.CursedBook);
+                Check($"{label}: the N'tormat gives the Page of Reincarnation", inventory.GetItemCountEffective(DLC4Content.Items.PageDie) == 1,
+                    $"PageDie={inventory.GetItemCountEffective(DLC4Content.Items.PageDie)}");
+                Check($"{label}: picked up the dropped page as well", OtherPages(inventory) == 1, $"other pages={OtherPages(inventory)}");
+            }
+            yield return TeleportTo(stand, 1f);
+        }
+
+        // Finishes the Ancient Sepulcher event standing in its zone; its rewards never include Reincarnation.
+        private IEnumerator TestSepulcherFinish()
+        {
+            if (!wake) yield break;
+            var zone = wake.GetComponent<HoldoutZoneController>();
+            var stand = Ground(wake.transform.position + wake.transform.forward * 4f) + Vector3.up;
+            yield return TeleportTo(stand, 1f);
+            TeleportHelper.TeleportBody(SecondBody, stand + wake.transform.right * 2f, false);
+            yield return WaitFor(() => wake.missionStatus == WakeController.MissionStatus.InProgress || wake.hasEventConcluded, 90, "Ancient Sepulcher waves");
+            Note($"event in progress, zone radius {zone.currentRadius:0}");
+            pickupsBeforeWake = new HashSet<GenericPickupController>(InstanceTracker.GetInstancesList<GenericPickupController>());
+            float end = Time.realtimeSinceStartup + 150f;
+            while (!wake.hasEventConcluded && Time.realtimeSinceStartup < end)
+            {
+                if (Vector3.Distance(Body.corePosition, stand) > 3f) TeleportHelper.TeleportBody(Body, stand, false);
+                if (SecondBody && Vector3.Distance(SecondBody.corePosition, stand) > 5f) TeleportHelper.TeleportBody(SecondBody, stand + wake.transform.right * 2f, false);
+                yield return new WaitForSecondsRealtime(1f);
+            }
+            if (!wake.hasEventConcluded)
+            {
+                Note($"charge {zone.charge:P0} after 150 s; charging the rest");
+                zone.FullyChargeHoldoutZone();
+                yield return WaitFor(() => wake.hasEventConcluded, 15, "Ancient Sepulcher finished");
+            }
+            Check("Ancient Sepulcher event succeeded", wake.missionStatus == WakeController.MissionStatus.Success, $"status={wake.missionStatus}");
+            yield return new WaitForSecondsRealtime(6f);
+            var rewards = NewPickups().Select(p => p.pickup.pickupIndex).ToList();
+            Note("rewards: " + string.Join(", ", rewards.Select(PickupName)));
+            Check("Ancient Sepulcher rewards are not Reincarnation", rewards.All(p => !p.isItem || p.itemIndex != DLC4Content.Items.PageDie.itemIndex));
+            Check("still one Page of Reincarnation each", Count(DLC4Content.Items.PageDie) == 1 && SecondBody.inventory.GetItemCountEffective(DLC4Content.Items.PageDie) == 1);
+            yield return Shot("02b_sepulcher_done");
         }
 
         // Reincarnation comes with the N'tormat, so it is out of the page drops; the other pages still drop.
